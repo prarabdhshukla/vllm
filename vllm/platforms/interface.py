@@ -187,7 +187,7 @@ class Platform:
                 cls.device_control_env_var] != "":
             device_ids = os.environ[cls.device_control_env_var].split(",")
             physical_device_id = device_ids[device_id]
-            return int(physical_device_id)
+            return physical_device_id
         else:
             return device_id
 

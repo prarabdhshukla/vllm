@@ -2618,6 +2618,7 @@ def nvmlDeviceGetHandleBySerial(serial):
     _nvmlCheckReturn(ret)
     return device
 
+
 @convertStrBytes
 def nvmlDeviceGetHandleByUUID(uuid):
     c_uuid = c_char_p(uuid)
@@ -2626,6 +2627,7 @@ def nvmlDeviceGetHandleByUUID(uuid):
     ret = fn(c_uuid, byref(device))
     _nvmlCheckReturn(ret)
     return device
+    
 
 @convertStrBytes
 def nvmlDeviceGetHandleByPciBusId(pciBusId):
@@ -3216,12 +3218,46 @@ def nvmlDeviceGetComputeMode(handle):
     return c_mode.value
 
 def nvmlDeviceGetCudaComputeCapability(handle):
-    c_major = c_int()
-    c_minor = c_int()
-    fn = _nvmlGetFunctionPointer("nvmlDeviceGetCudaComputeCapability")
-    ret = fn(handle, byref(c_major), byref(c_minor))
-    _nvmlCheckReturn(ret)
-    return (c_major.value, c_minor.value)
+    import torch
+    try:
+        c_major = c_int()
+        c_minor = c_int()
+        fn = _nvmlGetFunctionPointer("nvmlDeviceGetCudaComputeCapability")
+        ret = fn(handle, byref(c_major), byref(c_minor))
+        try:
+            _nvmlCheckReturn(ret)
+            major, minor = c_major.value, c_minor.value
+            if (major,minor)!= (0,0):
+                return (major, minor)
+        except Exception:
+            dev_index = torch.cuda.current_device()
+            return torch.cuda.get_device_capability(dev_index)
+            pass
+    except Exception:
+        pass
+    
+    try:
+        import torch
+        dev_idx = torch.cuda.current_device()
+        return torch.cuda.get_device_capability(dev_idx)
+    except Exception as e:
+        raise RuntimeError("Failed to query compute capability via NVML and CUDA runtime: "+str(e))
+    # return (c_major.value, c_minor.value)
+# def nvmlDeviceGetCudaComputeCapability(handle):
+#     try:
+#         c_major = c_int()
+#         c_minor = c_int()
+#         fn = _nvmlGetFunctionPointer("nvmlDeviceGetCudaComputeCapability")
+#         ret = fn(handle, byref(c_major), byref(c_minor))
+#         _nvmlCheckReturn(ret)
+#         major, minor = c_major.value, c_minor.value
+#         if (major, minor) != (0,0):
+#             return (major, minor)
+#     except Exception:
+#         pass
+
+#     return (8, 0) 
+
 
 def nvmlDeviceGetEccMode(handle):
     c_currState = _nvmlEnableState_t()
